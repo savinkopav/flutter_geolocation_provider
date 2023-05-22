@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_geolocation_provider/flutter_geolocation_provider.dart';
+import 'package:flutter_geolocation_provider/pigeon.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,29 +16,26 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
-  final _flutterGeolocationProviderPlugin = FlutterGeolocationProvider();
+  Location _platformVersion = Location();
+  final _flutterGeolocationProviderPlugin = SimpleGeolocationApi();
 
   @override
   void initState() {
     super.initState();
     init();
   }
-  
+
   Future<void> init() async {
-    String platformVersion;
-    
     try {
-      platformVersion =
-          await _flutterGeolocationProviderPlugin.getPlatformVersion() ?? 'Unknown platform version';
+      _platformVersion = await _flutterGeolocationProviderPlugin.getLastLocation();
     } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
+      _platformVersion = Location();
     }
-    
+
     if (!mounted) return;
 
     setState(() {
-      _platformVersion = platformVersion;
+
     });
   }
 
@@ -48,8 +46,11 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
+        body: Column(
+          children: [
+            Text('latitude: ${_platformVersion.latitude}\n'),
+            Text('longitude: ${_platformVersion.longitude}\n'),
+          ],
         ),
       ),
     );
