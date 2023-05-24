@@ -93,7 +93,7 @@ interface SimpleGeolocationApi {
 
   companion object {
     /** The codec used by SimpleGeolocationApi. */
-    val codec: MessageCodec<Any?> by lazy {
+    private val codec: MessageCodec<Any?> by lazy {
       SimpleGeolocationApiCodec
     }
     /** Sets up an instance of `SimpleGeolocationApi` to handle messages through the `binaryMessenger`. */

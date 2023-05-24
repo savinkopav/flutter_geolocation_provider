@@ -1,18 +1,27 @@
 package com.savinkopav.flutter_geolocation_provider
 
 import android.content.Context
+import android.location.LocationListener
 import android.location.LocationManager
 import android.util.Log
 
-class SimpleGeolocationImpl(private val context: Context) : SimpleGeolocationApi {
+class SimpleGeolocationImpl(context: Context) : SimpleGeolocationApi {
+
+    private val gpsLocationListener = LocationListener {
+        removeListeners()
+    }
+    private val networkLocationListener = LocationListener {
+        removeListeners()
+    }
+    private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager?
 
     companion object {
         private const val TAG = "SimpleGeolocationImpl"
     }
 
     override fun getLastLocation(): Location {
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager?
-        Log.d(TAG, "locationManager = $locationManager")
+        requestLocationUpdates()
+
         locationManager?.let {
             Log.d(TAG, "locationManager = $it")
             it.getLastKnownLocation(
@@ -43,5 +52,17 @@ class SimpleGeolocationImpl(private val context: Context) : SimpleGeolocationApi
             latitude = lat
             longitude = long
         }
+    }
+
+    private fun requestLocationUpdates() {
+        locationManager?.let {
+            it.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0f, gpsLocationListener)
+            it.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0f, networkLocationListener)
+        }
+    }
+
+    private fun removeListeners() {
+        locationManager?.removeUpdates(gpsLocationListener)
+        locationManager?.removeUpdates(networkLocationListener)
     }
 }
