@@ -16,14 +16,14 @@ private fun wrapResult(result: Any?): List<Any?> {
 }
 
 private fun wrapError(exception: Throwable): List<Any?> {
-  return if (exception is FlutterError) {
-    listOf(
+  if (exception is FlutterError) {
+    return listOf(
       exception.code,
       exception.message,
       exception.details
     )
   } else {
-    listOf(
+    return listOf(
       exception.javaClass.simpleName,
       exception.toString(),
       "Cause: " + exception.cause + ", Stacktrace: " + Log.getStackTraceString(exception)
@@ -90,6 +90,7 @@ private object SimpleGeolocationApiCodec : StandardMessageCodec() {
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface SimpleGeolocationApi {
   fun getLastLocation(): Location
+  fun requestLocationUpdate(callback: (Result<Location>) -> Unit)
 
   companion object {
     /** The codec used by SimpleGeolocationApi. */
@@ -109,6 +110,24 @@ interface SimpleGeolocationApi {
               wrapError(exception)
             }
             reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.SimpleGeolocationApi.requestLocationUpdate", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.requestLocationUpdate() { result: Result<Location> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(wrapResult(data))
+              }
+            }
           }
         } else {
           channel.setMessageHandler(null)

@@ -47,6 +47,10 @@ class SimpleGeolocationImpl(context: Context) : SimpleGeolocationApi {
         }
     }
 
+    override fun requestLocationUpdate(callback: (Result<Location>) -> Unit) {
+
+    }
+
     private fun provideLocationFromCoordinates(lat: Double?, long: Double?) : Location {
         return Location().apply {
             latitude = lat
