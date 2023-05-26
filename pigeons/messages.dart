@@ -11,6 +11,11 @@ abstract class SimpleGeolocationApi {
   void removeLocationUpdates();
 }
 
+@FlutterApi()
+abstract class SimpleGeolocationFlutterApi {
+  void onLocationUpdates(Location location);
+}
+
 class Location {
 
   double? latitude;
