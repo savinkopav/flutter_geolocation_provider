@@ -90,11 +90,11 @@ private object SimpleGeolocationApiCodec : StandardMessageCodec() {
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface SimpleGeolocationApi {
   fun getLastLocation(): Location
-  fun requestLocationUpdate(callback: (Result<Location>) -> Unit)
+  fun removeLocationUpdates()
 
   companion object {
     /** The codec used by SimpleGeolocationApi. */
-    private val codec: MessageCodec<Any?> by lazy {
+    val codec: MessageCodec<Any?> by lazy {
       SimpleGeolocationApiCodec
     }
     /** Sets up an instance of `SimpleGeolocationApi` to handle messages through the `binaryMessenger`. */
@@ -104,10 +104,11 @@ interface SimpleGeolocationApi {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.SimpleGeolocationApi.getLastLocation", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
-            val wrapped: List<Any?> = try {
-              listOf<Any?>(api.getLastLocation())
+            var wrapped: List<Any?>
+            try {
+              wrapped = listOf<Any?>(api.getLastLocation())
             } catch (exception: Throwable) {
-              wrapError(exception)
+              wrapped = wrapError(exception)
             }
             reply.reply(wrapped)
           }
@@ -116,23 +117,61 @@ interface SimpleGeolocationApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.SimpleGeolocationApi.requestLocationUpdate", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.SimpleGeolocationApi.removeLocationUpdates", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
-            api.requestLocationUpdate() { result: Result<Location> ->
-              val error = result.exceptionOrNull()
-              if (error != null) {
-                reply.reply(wrapError(error))
-              } else {
-                val data = result.getOrNull()
-                reply.reply(wrapResult(data))
-              }
+            var wrapped: List<Any?>
+            try {
+              api.removeLocationUpdates()
+              wrapped = listOf<Any?>(null)
+            } catch (exception: Throwable) {
+              wrapped = wrapError(exception)
             }
+            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)
         }
       }
+    }
+  }
+}
+@Suppress("UNCHECKED_CAST")
+private object SimpleGeolocationFlutterApiCodec : StandardMessageCodec() {
+  override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
+    return when (type) {
+      128.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          Location.fromList(it)
+        }
+      }
+      else -> super.readValueOfType(type, buffer)
+    }
+  }
+  override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
+    when (value) {
+      is Location -> {
+        stream.write(128)
+        writeValue(stream, value.toList())
+      }
+      else -> super.writeValue(stream, value)
+    }
+  }
+}
+
+/** Generated class from Pigeon that represents Flutter messages that can be called from Kotlin. */
+@Suppress("UNCHECKED_CAST")
+class SimpleGeolocationFlutterApi(private val binaryMessenger: BinaryMessenger) {
+  companion object {
+    /** The codec used by SimpleGeolocationFlutterApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      SimpleGeolocationFlutterApiCodec
+    }
+  }
+  fun onLocationUpdates(locationArg: Location, callback: () -> Unit) {
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.SimpleGeolocationFlutterApi.onLocationUpdates", codec)
+    channel.send(listOf(locationArg)) {
+      callback()
     }
   }
 }

@@ -94,9 +94,9 @@ class SimpleGeolocationApi {
     }
   }
 
-  Future<Location> requestLocationUpdate() async {
+  Future<void> removeLocationUpdates() async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.SimpleGeolocationApi.requestLocationUpdate', codec,
+        'dev.flutter.pigeon.SimpleGeolocationApi.removeLocationUpdates', codec,
         binaryMessenger: _binaryMessenger);
     final List<Object?>? replyList =
         await channel.send(null) as List<Object?>?;
@@ -111,13 +111,59 @@ class SimpleGeolocationApi {
         message: replyList[1] as String?,
         details: replyList[2],
       );
-    } else if (replyList[0] == null) {
-      throw PlatformException(
-        code: 'null-error',
-        message: 'Host platform returned null value for non-null return value.',
-      );
     } else {
-      return (replyList[0] as Location?)!;
+      return;
+    }
+  }
+}
+
+class _SimpleGeolocationFlutterApiCodec extends StandardMessageCodec {
+  const _SimpleGeolocationFlutterApiCodec();
+  @override
+  void writeValue(WriteBuffer buffer, Object? value) {
+    if (value is Location) {
+      buffer.putUint8(128);
+      writeValue(buffer, value.encode());
+    } else {
+      super.writeValue(buffer, value);
+    }
+  }
+
+  @override
+  Object? readValueOfType(int type, ReadBuffer buffer) {
+    switch (type) {
+      case 128: 
+        return Location.decode(readValue(buffer)!);
+      default:
+        return super.readValueOfType(type, buffer);
+    }
+  }
+}
+
+abstract class SimpleGeolocationFlutterApi {
+  static const MessageCodec<Object?> codec = _SimpleGeolocationFlutterApiCodec();
+
+  void onLocationUpdates(Location location);
+
+  static void setup(SimpleGeolocationFlutterApi? api, {BinaryMessenger? binaryMessenger}) {
+    {
+      final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.SimpleGeolocationFlutterApi.onLocationUpdates', codec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        channel.setMessageHandler(null);
+      } else {
+        channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.SimpleGeolocationFlutterApi.onLocationUpdates was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final Location? arg_location = (args[0] as Location?);
+          assert(arg_location != null,
+              'Argument for dev.flutter.pigeon.SimpleGeolocationFlutterApi.onLocationUpdates was null, expected non-null Location.');
+          api.onLocationUpdates(arg_location!);
+          return;
+        });
+      }
     }
   }
 }
