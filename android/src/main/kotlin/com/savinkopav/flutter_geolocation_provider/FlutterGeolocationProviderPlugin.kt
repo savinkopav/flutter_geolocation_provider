@@ -8,7 +8,7 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 /** FlutterGeolocationProviderPlugin */
 class FlutterGeolocationProviderPlugin: FlutterPlugin, ActivityAware {
 
-  private var activity: Activity? = null
+  private var activityPluginBinding: ActivityPluginBinding? = null
   private var simpleGeolocationApi: SimpleGeolocationImpl? = null
   private var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null //TODO: last upd
 
@@ -25,15 +25,15 @@ class FlutterGeolocationProviderPlugin: FlutterPlugin, ActivityAware {
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-    activity = binding.activity
+    activityPluginBinding = binding
     flutterPluginBinding?.let {
-      simpleGeolocationApi?.onActivityAttach(it, activity!!)
+      simpleGeolocationApi?.onActivityAttach(it, activityPluginBinding!!)
     }
   }
 
   override fun onDetachedFromActivity() {
     simpleGeolocationApi?.onActivityDetach()
-    activity = null
+    activityPluginBinding = null
   }
 
   override fun onDetachedFromActivityForConfigChanges() {

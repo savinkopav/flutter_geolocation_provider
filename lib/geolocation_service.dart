@@ -1,43 +1,32 @@
 import 'package:flutter_geolocation_provider/pigeon.dart';
 
-abstract class GeolocationService extends SimpleGeolocationFlutterApi {
+class GeolocationService {
 
-  static GeolocationService? _instance;
-
-  static GeolocationService get instance {
-    if (_instance != null) {
-      return _instance!;
-    }
-    _instance = GeolocationServiceImpl();
-    return _instance!;
+  static final GeolocationService _instance = GeolocationService._();
+  factory GeolocationService() {
+    return _instance;
   }
 
-  Future<Location> getLastLocation();
+  late SimpleGeolocationApi _simpleGeolocationApi;
 
-  Future<void> removeLocationUpdates();
-}
-
-class GeolocationServiceImpl extends GeolocationService {
-
-  final SimpleGeolocationApi _simpleGeolocationApi = SimpleGeolocationApi();
-
-  GeolocationServiceImpl() {
-    SimpleGeolocationFlutterApi.setup(this);
+  GeolocationService._() {
+    _simpleGeolocationApi = SimpleGeolocationApi();
   }
 
-  @override
-  void onLocationUpdates(Location location) {
-
-  }
-
-  @override
   Future<Location> getLastLocation() {
     return _simpleGeolocationApi.getLastLocation();
   }
 
-  @override
   Future<void> removeLocationUpdates() {
     return _simpleGeolocationApi.removeLocationUpdates();
+  }
+
+  Future<Location> requestLocationUpdates() {
+    return _simpleGeolocationApi.requestLocationUpdates();
+  }
+
+  Future<void> requestLocationPermission() {
+    return _simpleGeolocationApi.requestLocationPermission();
   }
 
 }

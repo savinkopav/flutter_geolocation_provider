@@ -3,18 +3,17 @@ import 'package:pigeon/pigeon.dart';
 @HostApi()
 abstract class SimpleGeolocationApi {
 
+  @async
+  void requestLocationPermission();
+
   Location getLastLocation();
 
-  // @async
-  // Location requestLocationUpdates(Location Function()? callback);
+  @async
+  Location requestLocationUpdates();
 
   void removeLocationUpdates();
 }
 
-@FlutterApi()
-abstract class SimpleGeolocationFlutterApi {
-  void onLocationUpdates(Location location);
-}
 
 class Location {
 

@@ -1,49 +1,43 @@
 package com.savinkopav.flutter_geolocation_provider
 
 import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationListener
 import android.location.LocationManager
 import android.util.Log
 import androidx.core.app.ActivityCompat.requestPermissions
-import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.PluginRegistry
 
 class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermissionsResultListener {
 
     private val gpsLocationListener = object : LocationListener {
-//        var platformCallback: ((Result<Location>) -> Unit)? = null
+
+        var platformCallback: ((Result<Location>) -> Unit)? = null
+
         override fun onLocationChanged(location: android.location.Location) {
-//            platformCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
-
-
-            simpleGeolocationFlutterApi?.onLocationUpdates(Location(location.latitude, location.longitude)) {
-
-            }
+            Log.d(TAG, "onLocationChanged - GPS")
+            platformCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
         }
     }
 
     private val networkLocationListener = object : LocationListener {
-//        var platformCallback: ((Result<Location>) -> Unit)? = null
+
+        var platformCallback: ((Result<Location>) -> Unit)? = null
+
         override fun onLocationChanged(location: android.location.Location) {
-//            platformCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
-
-
-            simpleGeolocationFlutterApi?.onLocationUpdates(Location(location.latitude, location.longitude)) {
-
-            }
-
+            Log.d(TAG, "onLocationChanged - NETWORK")
+            platformCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
         }
     }
 
     private var locationManager: LocationManager? = null
-    private var activity: Activity? = null
+    private var activityPluginBinding: ActivityPluginBinding? = null
     private var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null //TODO: last upd
-    private var simpleGeolocationFlutterApi: SimpleGeolocationFlutterApi? = null
+    private var permissionCallback: ((Result<Unit>) -> Unit)? = null
 
     companion object {
         private const val TAG = "SimpleGeolocationImpl"
@@ -54,44 +48,66 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         private const val ACCESS_COARSE_LOCATION = 10000001
     }
 
-    private fun checkPermissions() {
-        when {
-            ContextCompat.checkSelfPermission(
-                activity!!,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                //perform action
-            }
-            shouldShowRequestPermissionRationale(activity!!, Manifest.permission.ACCESS_FINE_LOCATION) -> {
-                // In an educational UI, explain to the user why your app requires this
-                // permission for a specific feature to behave as expected, and what
-                // features are disabled if it's declined. In this UI, include a
-                // "cancel" or "no thanks" button that lets the user continue
-                // using your app without granting the permission.
-            }
-            else -> {
-                // You can directly ask for the permission.
-                requestPermissions(activity!!,
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                    ACCESS_FINE_LOCATION)
-            }
-        }
-    }
+//    private fun checkPermissions(callback: (Result<Location>) -> Unit) {
+//        if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {} else {
+//            requestPermissions(activity!!, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), ACCESS_FINE_LOCATION)
+//        }
 
-    fun onActivityAttach(binding: FlutterPlugin.FlutterPluginBinding, activity: Activity) {
-        this.activity = activity
-        this.flutterPluginBinding = binding
-        locationManager = activity.getSystemService(Context.LOCATION_SERVICE) as LocationManager?
-        simpleGeolocationFlutterApi = SimpleGeolocationFlutterApi(flutterPluginBinding?.binaryMessenger!!)
-        checkPermissions()
+//        locationManager?.let {
+//            it.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0f, gpsLocationListener.apply { platformCallback = callback })
+//            it.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0f, networkLocationListener.apply { platformCallback = callback })
+//        }
+
+//        when {
+//            ContextCompat.checkSelfPermission(
+//                activity!!,
+//                Manifest.permission.ACCESS_FINE_LOCATION
+//            ) == PackageManager.PERMISSION_GRANTED -> {
+//
+//            }
+//            shouldShowRequestPermissionRationale(activity!!, Manifest.permission.ACCESS_FINE_LOCATION) -> {
+//                // In an educational UI, explain to the user why your app requires this
+//                // permission for a specific feature to behave as expected, and what
+//                // features are disabled if it's declined. In this UI, include a
+//                // "cancel" or "no thanks" button that lets the user continue
+//                // using your app without granting the permission.
+//            }
+//            else -> {
+//                // You can directly ask for the permission.
+//                requestPermissions(activity!!,
+//                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+//                    ACCESS_FINE_LOCATION)
+//            }
+//        }
+//    }
+
+    fun onActivityAttach(pluginBinding: FlutterPlugin.FlutterPluginBinding, activityBinding: ActivityPluginBinding) {
+        Log.d(TAG, "onActivityAttach")
+        this.activityPluginBinding = activityBinding
+        this.flutterPluginBinding = pluginBinding
+        activityPluginBinding?.addRequestPermissionsResultListener(this)
+        locationManager = activityBinding.activity.getSystemService(Context.LOCATION_SERVICE) as LocationManager?
     }
 
     fun onActivityDetach() {
-        this.activity = null
+        Log.d(TAG, "onActivityDetach")
+        activityPluginBinding?.addRequestPermissionsResultListener(this)
+        this.activityPluginBinding = null
         this.flutterPluginBinding = null
     }
 
+    override fun requestLocationPermission(callback: (Result<Unit>) -> Unit) {
+        Log.d(TAG, "requestLocationPermission")
+        if (ContextCompat.checkSelfPermission(activityPluginBinding!!.activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionCallback = callback
+            requestPermissions(activityPluginBinding!!.activity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), ACCESS_FINE_LOCATION)
+        } else {
+            callback(Result.success(Unit))
+        }
+    }
+
     override fun getLastLocation(): Location {
+        Log.d(TAG, "getLastLocation")
         locationManager?.let {
             Log.d(TAG, "locationManager = $it")
             it.getLastKnownLocation(
@@ -117,14 +133,16 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         }
     }
 
-//    override fun requestLocationUpdates(callback: (Result<Location>) -> Unit) {
-//        locationManager?.let {
-//            it.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0f, gpsLocationListener.apply { platformCallback = callback })
-//            it.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0f, networkLocationListener.apply { platformCallback = callback })
-//        }
-//    }
+    override fun requestLocationUpdates(callback: (Result<Location>) -> Unit) {
+        Log.d(TAG, "requestLocationUpdates")
+        locationManager?.let {
+            it.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0f, gpsLocationListener.apply { platformCallback = callback })
+            it.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0f, networkLocationListener.apply { platformCallback = callback })
+        }
+    }
 
     override fun removeLocationUpdates() {
+        Log.d(TAG, "removeLocationUpdates")
         locationManager?.removeUpdates(gpsLocationListener)
         locationManager?.removeUpdates(networkLocationListener)
     }
@@ -141,16 +159,15 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         permissions: Array<out String>,
         grantResults: IntArray
     ): Boolean {
+        Log.d(TAG, "onRequestPermissionsResult")
         return when (requestCode) {
             ACCESS_FINE_LOCATION -> {
-                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                    //perform action
+                if ((grantResults.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED)) {
+                    //show info for user or throw specific error
                 } else {
-                    // Explain to the user that the feature is unavailable because
-                    // the feature requires a permission that the user has denied.
-                    // At the same time, respect the user's decision. Don't link to
-                    // system settings in an effort to convince the user to change
-                    // their decision.
+                    val callback = permissionCallback
+                    permissionCallback = null
+                    callback!!.invoke(Result.success(Unit))
                 }
                 true
             }
