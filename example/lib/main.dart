@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:flutter_geolocation_provider/pigeon.dart';
 import 'package:flutter_geolocation_provider/geolocation_service.dart';
 
@@ -24,10 +24,14 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    init();
   }
 
-  Future<void> init() async {
+  Future<void> getLocation() async {
+    setState(() {
+      _latitude = 'Unknown';
+      _longitude = 'Unknown';
+    });
+
     Location location;
     try {
       print("logger -- before requestLocationPermission");
@@ -38,15 +42,33 @@ class _MyAppState extends State<MyApp> {
       await _simpleGeolocationProviderPlugin.removeLocationUpdates();
       print("logger -- before getLastLocation");
       location = await _simpleGeolocationProviderPlugin.getLastLocation();
-    } catch(_) { // if we don't have ACCESS_FINE_LOCATION permission for example
+    } catch(e, s) { // if we don't have ACCESS_FINE_LOCATION permission for example
+      if (e is PlatformException) {
+        print("logger -- e is PlatformException with message: ${e.message}");
+        if (e.message!.contains("LocationAccessDenied")) {
+          print("logger -- LocationAccessDenied");
+          await showDialog(context: context, builder: (context) {
+            return AlertDialog(
+              title: const Text("LocationAccessDenied"),
+              content: const Text("For usages application's functionality you should provice location permission"),
+              actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('cancel'),
+                    ),
+                  ],
+            );
+          });
+        }
+      }
       location = Location();
     }
 
     if (!mounted) return;
 
     setState(() {
-      _latitude = location.latitude?.toString() ?? "1";
-      _longitude = location.longitude?.toString() ?? "2";
+      _latitude = location.latitude?.toString() ?? 'Unknown';
+      _longitude = location.longitude?.toString() ?? 'Unknown';
     });
   }
 
@@ -54,6 +76,17 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        primaryColorDark: Colors.lightGreen[800],
+        fontFamily: 'Georgia',
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+          titleLarge: TextStyle(fontSize: 18.0),
+          bodyMedium: TextStyle(fontSize: 14.0, fontFamily: 'Hind'),
+        ),
+      ),
       home: Scaffold(
         appBar: AppBar(
           title: const Text('Plugin example app'),
@@ -64,6 +97,10 @@ class _MyAppState extends State<MyApp> {
             children: [
               Text('latitude: $_latitude'),
               Text('longitude: $_longitude'),
+              TextButton(
+                onPressed: getLocation,
+                child: const Text('Get location'),
+              )
             ],
           ),
         ),

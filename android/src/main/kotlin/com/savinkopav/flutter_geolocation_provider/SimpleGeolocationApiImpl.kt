@@ -8,6 +8,7 @@ import android.location.LocationManager
 import android.util.Log
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.content.ContextCompat
+import com.savinkopav.flutter_geolocation_provider.Utils.PluginException
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.PluginRegistry
@@ -47,39 +48,6 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         private const val ACCESS_FINE_LOCATION = 10000000
         private const val ACCESS_COARSE_LOCATION = 10000001
     }
-
-//    private fun checkPermissions(callback: (Result<Location>) -> Unit) {
-//        if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {} else {
-//            requestPermissions(activity!!, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), ACCESS_FINE_LOCATION)
-//        }
-
-//        locationManager?.let {
-//            it.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0f, gpsLocationListener.apply { platformCallback = callback })
-//            it.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0f, networkLocationListener.apply { platformCallback = callback })
-//        }
-
-//        when {
-//            ContextCompat.checkSelfPermission(
-//                activity!!,
-//                Manifest.permission.ACCESS_FINE_LOCATION
-//            ) == PackageManager.PERMISSION_GRANTED -> {
-//
-//            }
-//            shouldShowRequestPermissionRationale(activity!!, Manifest.permission.ACCESS_FINE_LOCATION) -> {
-//                // In an educational UI, explain to the user why your app requires this
-//                // permission for a specific feature to behave as expected, and what
-//                // features are disabled if it's declined. In this UI, include a
-//                // "cancel" or "no thanks" button that lets the user continue
-//                // using your app without granting the permission.
-//            }
-//            else -> {
-//                // You can directly ask for the permission.
-//                requestPermissions(activity!!,
-//                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-//                    ACCESS_FINE_LOCATION)
-//            }
-//        }
-//    }
 
     fun onActivityAttach(pluginBinding: FlutterPlugin.FlutterPluginBinding, activityBinding: ActivityPluginBinding) {
         Log.d(TAG, "onActivityAttach")
@@ -162,11 +130,12 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         Log.d(TAG, "onRequestPermissionsResult")
         return when (requestCode) {
             ACCESS_FINE_LOCATION -> {
+                val callback = permissionCallback
+                permissionCallback = null
                 if ((grantResults.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED)) {
-                    //show info for user or throw specific error
+                    callback!!.invoke(Result.failure(LocationAccessDenied()))
+                    //TODO maybe just throw?
                 } else {
-                    val callback = permissionCallback
-                    permissionCallback = null
                     callback!!.invoke(Result.success(Unit))
                 }
                 true
@@ -177,3 +146,5 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
 
 }
+
+class LocationAccessDenied: PluginException("LocationAccessDenied")
