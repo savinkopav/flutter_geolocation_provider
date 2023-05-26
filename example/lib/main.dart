@@ -5,7 +5,31 @@ import 'package:flutter_geolocation_provider/pigeon.dart';
 import 'package:flutter_geolocation_provider/geolocation_service.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const Main());
+}
+
+class Main extends StatelessWidget {
+  const Main({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        primaryColorDark: Colors.lightGreen[800],
+        fontFamily: 'Georgia',
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+          titleLarge: TextStyle(fontSize: 18.0),
+          bodyMedium: TextStyle(fontSize: 14.0, fontFamily: 'Hind'),
+        ),
+      ),
+      home: const MyApp(),
+    );
+  }
+
 }
 
 class MyApp extends StatefulWidget {
@@ -26,7 +50,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
   }
 
-  Future<void> getLocation() async {
+  Future<void> getLocation(BuildContext context) async {
     setState(() {
       _latitude = 'Unknown';
       _longitude = 'Unknown';
@@ -42,15 +66,15 @@ class _MyAppState extends State<MyApp> {
       await _simpleGeolocationProviderPlugin.removeLocationUpdates();
       print("logger -- before getLastLocation");
       location = await _simpleGeolocationProviderPlugin.getLastLocation();
-    } catch(e, s) { // if we don't have ACCESS_FINE_LOCATION permission for example
+    } catch(e) { // if we don't have ACCESS_FINE_LOCATION permission for example
       if (e is PlatformException) {
         print("logger -- e is PlatformException with message: ${e.message}");
         if (e.message!.contains("LocationAccessDenied")) {
           print("logger -- LocationAccessDenied");
-          await showDialog(context: context, builder: (context) {
+          await showDialog(context:context, builder: (context) {
             return AlertDialog(
-              title: const Text("LocationAccessDenied"),
-              content: const Text("For usages application's functionality you should provice location permission"),
+              title: const Text("Need location access"),
+              content: const Text("This application need geolocation for good work"),
               actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
@@ -74,35 +98,21 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        primaryColorDark: Colors.lightGreen[800],
-        fontFamily: 'Georgia',
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-          titleLarge: TextStyle(fontSize: 18.0),
-          bodyMedium: TextStyle(fontSize: 14.0, fontFamily: 'Hind'),
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Plugin example app'),
       ),
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Plugin example app'),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('latitude: $_latitude'),
-              Text('longitude: $_longitude'),
-              TextButton(
-                onPressed: getLocation,
-                child: const Text('Get location'),
-              )
-            ],
-          ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('latitude: $_latitude'),
+            Text('longitude: $_longitude'),
+            TextButton(
+              onPressed: () => getLocation(context),
+              child: const Text('Get location'),
+            )
+          ],
         ),
       ),
     );
