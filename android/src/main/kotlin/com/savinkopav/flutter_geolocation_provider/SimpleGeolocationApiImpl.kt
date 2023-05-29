@@ -7,8 +7,9 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.util.Log
 import androidx.core.app.ActivityCompat.requestPermissions
+import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
 import androidx.core.content.ContextCompat
-import com.savinkopav.flutter_geolocation_provider.Utils.PluginException
+import com.savinkopav.flutter_geolocation_provider.utils.PluginException
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.PluginRegistry
@@ -59,9 +60,10 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     fun onActivityDetach() {
         Log.d(TAG, "onActivityDetach")
-        activityPluginBinding?.addRequestPermissionsResultListener(this)
+        activityPluginBinding?.removeRequestPermissionsResultListener(this)
         this.activityPluginBinding = null
         this.flutterPluginBinding = null
+        this.locationManager = null
     }
 
     override fun requestLocationPermission(callback: (Result<Unit>) -> Unit) {
@@ -116,6 +118,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
     }
 
     private fun provideLocationFromCoordinates(lat: Double?, long: Double?) : Location {
+        Log.d(TAG, "provideLocationFromCoordinates")
         return Location().apply {
             latitude = lat
             longitude = long
@@ -132,19 +135,17 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
             ACCESS_FINE_LOCATION -> {
                 val callback = permissionCallback
                 permissionCallback = null
-                if ((grantResults.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED)) {
-                    callback!!.invoke(Result.failure(LocationAccessDenied()))
-                    //TODO maybe just throw?
-                } else {
+                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                     callback!!.invoke(Result.success(Unit))
+                } else {
+                    callback!!.invoke(Result.failure(LocationAccessDenied()))
                 }
                 true
             }
             else -> false
         }
     }
-
-
 }
 
 class LocationAccessDenied: PluginException("LocationAccessDenied")
+class LocationAccessPermanentlyDenied: PluginException("LocationAccessPermanentlyDenied")

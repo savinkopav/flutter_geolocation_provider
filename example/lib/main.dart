@@ -29,7 +29,6 @@ class Main extends StatelessWidget {
       home: const MyApp(),
     );
   }
-
 }
 
 class MyApp extends StatefulWidget {
@@ -43,7 +42,6 @@ class _MyAppState extends State<MyApp> {
   String _latitude = 'Unknown';
   String _longitude = 'Unknown';
   final _simpleGeolocationProviderPlugin = GeolocationService();
-  // bool _cancelJob = false;
 
   @override
   void initState() {
@@ -61,28 +59,18 @@ class _MyAppState extends State<MyApp> {
       print("logger -- before requestLocationPermission");
       await _simpleGeolocationProviderPlugin.requestLocationPermission();
       print("logger -- before requestLocationUpdates");
-      await _simpleGeolocationProviderPlugin.requestLocationUpdates(); //TODO there is no callback? wtf? throw via EventLoop?!
+      await _simpleGeolocationProviderPlugin.requestLocationUpdates();
       print("logger -- before removeLocationUpdates");
       await _simpleGeolocationProviderPlugin.removeLocationUpdates();
       print("logger -- before getLastLocation");
       location = await _simpleGeolocationProviderPlugin.getLastLocation();
-    } catch(e) { // if we don't have ACCESS_FINE_LOCATION permission for example
+    } catch (e) {
       if (e is PlatformException) {
-        print("logger -- e is PlatformException with message: ${e.message}");
-        if (e.message!.contains("LocationAccessDenied")) {
-          print("logger -- LocationAccessDenied");
-          await showDialog(context:context, builder: (context) {
-            return AlertDialog(
-              title: const Text("Need location access"),
-              content: const Text("This application need geolocation for good work"),
-              actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('cancel'),
-                    ),
-                  ],
-            );
-          });
+        print("logger -- e is PlatformException with error body: ${e.toString()}");
+        if (e.code == "LocationAccessDenied") {
+          print("logger -- LocationAccessDenied before");
+          await _showInfoDialog(context, "Location access required", "Application needs geolocation access to work");
+          print("logger -- LocationAccessDenied after");
         }
       }
       location = Location();
@@ -91,9 +79,26 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     setState(() {
-      _latitude = location.latitude?.toString() ?? 'Unknown';
-      _longitude = location.longitude?.toString() ?? 'Unknown';
+      _latitude = location.latitude?.toString() ?? 'no value';
+      _longitude = location.longitude?.toString() ?? 'no value';
     });
+  }
+
+  Future<void> _showInfoDialog(BuildContext context, String title, String content) async {
+    return await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("Need location access"),
+            content: const Text("Application needs geolocation permission for work"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        });
   }
 
   @override
@@ -108,9 +113,13 @@ class _MyAppState extends State<MyApp> {
           children: [
             Text('latitude: $_latitude'),
             Text('longitude: $_longitude'),
-            TextButton(
-              onPressed: () => getLocation(context),
-              child: const Text('Get location'),
+            Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: MaterialButton(
+                color: Colors.grey.shade800,
+                onPressed: () => getLocation(context),
+                child: const Text('Get location'),
+              ),
             )
           ],
         ),
