@@ -68,6 +68,8 @@ class _MyAppState extends State<MyApp> {
       if (e is PlatformException) {
         if (e.message != null && e.message!.contains("LocationAccessDenied")) {
           await _showInfoDialog(context, "Location access required", "Application needs geolocation access to work");
+        } else if (e.message != null && e.message!.contains("LocationAccessPermanentlyDenied")) {
+          await _showInfoDialog(context, "Location access denied", "You can provide access via settings");
         }
       }
       location = Location();
@@ -86,8 +88,8 @@ class _MyAppState extends State<MyApp> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: const Text("Need location access"),
-            content: const Text("Application needs geolocation permission for work"),
+            title: Text(title),
+            content: Text(content),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),

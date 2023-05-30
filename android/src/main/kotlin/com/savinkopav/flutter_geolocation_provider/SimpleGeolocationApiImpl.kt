@@ -7,6 +7,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.util.Log
 import androidx.core.app.ActivityCompat.requestPermissions
+import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -45,7 +46,6 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         private const val LONGITUDE = 27.0
 
         private const val ACCESS_FINE_LOCATION = 10000000
-        private const val ACCESS_COARSE_LOCATION = 10000001
     }
 
     fun onActivityAttach(pluginBinding: FlutterPlugin.FlutterPluginBinding, activityBinding: ActivityPluginBinding) {
@@ -136,7 +136,11 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
                 if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                     callback!!.invoke(Result.success(Unit))
                 } else {
-                    callback!!.invoke(Result.failure(LocationAccessDenied()))
+                    if (shouldShowRequestPermissionRationale(activityPluginBinding!!.activity, Manifest.permission.ACCESS_FINE_LOCATION)) { //TODO returns false when clicked outside the dialog
+                        callback!!.invoke(Result.failure(LocationAccessDenied()))
+                    } else {
+                        callback!!.invoke(Result.failure(LocationAccessPermanentlyDenied()))
+                    }
                 }
                 true
             }
@@ -146,3 +150,4 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 }
 
 class LocationAccessDenied: Exception("LocationAccessDenied")
+class LocationAccessPermanentlyDenied: Exception("LocationAccessPermanentlyDenied")
