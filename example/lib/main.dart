@@ -66,6 +66,10 @@ class _MyAppState extends State<MyApp> {
           await _showInfoDialog(context, "Location access required", "Application needs geolocation access for work");
         } else if (e.message != null && e.message!.contains("LocationAccessPermanentlyDenied")) {
           await _showInfoDialog(context, "Location access denied", "You can provide access via settings");
+        } else if (e.message != null && e.message!.contains("LocationProviderDenied")) {
+          await _showInfoDialog(context, "GPS provider unavailable", "Please check your gps service");
+        } else if (e.message != null && e.message!.contains("NetworkProviderDenied")) {
+          await _showInfoDialog(context, "Network provider unavailable", "Please check your network connection");
         }
       }
       location = Location();

@@ -5,6 +5,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationListener
 import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
 import android.util.Log
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
@@ -12,7 +15,6 @@ import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.PluginRegistry
-import java.lang.IllegalStateException
 
 class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermissionsResultListener {
 
@@ -37,6 +39,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
     }
 
     private var locationManager: LocationManager? = null
+    private var connectivityManager: ConnectivityManager? = null
     private var activityPluginBinding: ActivityPluginBinding? = null
     private var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null //TODO: last upd
     private var permissionCallback: ((Result<Unit>) -> Unit)? = null
@@ -54,6 +57,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         this.flutterPluginBinding = pluginBinding
         activityPluginBinding?.addRequestPermissionsResultListener(this)
         locationManager = activityBinding.activity.getSystemService(Context.LOCATION_SERVICE) as LocationManager?
+        connectivityManager = activityBinding.activity.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager?
     }
 
     fun onActivityDetach() {
@@ -62,6 +66,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         this.activityPluginBinding = null
         this.flutterPluginBinding = null
         this.locationManager = null
+        this.connectivityManager = null
     }
 
     override fun requestLocationPermission(callback: (Result<Unit>) -> Unit) {
@@ -103,6 +108,21 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     override fun requestLocationUpdates(callback: (Result<Location>) -> Unit) {
         Log.d(TAG, "requestLocationUpdates")
+
+        try {
+            if (!isGpsConnected()) {
+                callback.invoke(Result.failure(LocationProviderDenied()))
+                return
+            }
+            if (!isNetworkConnected()) {
+                callback.invoke(Result.failure(NetworkProviderDenied()))
+                return
+            }
+        } catch (e: Exception) {
+            callback.invoke(Result.failure(IllegalStateException().initCause(e)))
+            return
+        }
+
         try {
             locationManager?.let {
                 it.requestLocationUpdates(
@@ -121,6 +141,37 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         } catch (e: Exception) {
             callback.invoke(Result.failure(IllegalStateException().initCause(e)))
         }
+    }
+
+    private fun isNetworkConnected(): Boolean {
+        Log.d(TAG, "isNetworkConnected")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val capabilities = connectivityManager!!.getNetworkCapabilities(connectivityManager!!.activeNetwork)
+            if (capabilities != null) {
+                when {
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
+                        return true
+                    }
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
+                        return true
+                    }
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> {
+                        return true
+                    }
+                }
+            }
+        } else {
+            val activeNetworkInfo = connectivityManager!!.activeNetworkInfo
+            if (activeNetworkInfo != null && activeNetworkInfo.isConnected) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun isGpsConnected(): Boolean {
+        Log.d(TAG, "isGpsConnected")
+        return locationManager!!.isProviderEnabled(LocationManager.GPS_PROVIDER)
     }
 
     override fun removeLocationUpdates() {
@@ -165,3 +216,5 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
 class LocationAccessDenied: Exception("LocationAccessDenied")
 class LocationAccessPermanentlyDenied: Exception("LocationAccessPermanentlyDenied")
+class LocationProviderDenied: Exception("LocationProviderDenied")
+class NetworkProviderDenied: Exception("NetworkProviderDenied")
