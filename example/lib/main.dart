@@ -56,18 +56,14 @@ class _MyAppState extends State<MyApp> {
 
     Location location;
     try {
-      print("logger -- before requestLocationPermission");
       await _simpleGeolocationProviderPlugin.requestLocationPermission();
-      print("logger -- before requestLocationUpdates");
       await _simpleGeolocationProviderPlugin.requestLocationUpdates();
-      print("logger -- before removeLocationUpdates");
       await _simpleGeolocationProviderPlugin.removeLocationUpdates();
-      print("logger -- before getLastLocation");
       location = await _simpleGeolocationProviderPlugin.getLastLocation();
     } catch (e) {
       if (e is PlatformException) {
         if (e.message != null && e.message!.contains("LocationAccessDenied")) {
-          await _showInfoDialog(context, "Location access required", "Application needs geolocation access to work");
+          await _showInfoDialog(context, "Location access required", "Application needs geolocation access for work");
         } else if (e.message != null && e.message!.contains("LocationAccessPermanentlyDenied")) {
           await _showInfoDialog(context, "Location access denied", "You can provide access via settings");
         }

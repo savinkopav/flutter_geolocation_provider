@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.PluginRegistry
+import java.lang.IllegalStateException
 
 class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermissionsResultListener {
 
@@ -42,9 +43,8 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     companion object {
         private const val TAG = "SimpleGeolocationImpl"
-        private const val LATITUDE = 53.0
-        private const val LONGITUDE = 27.0
-
+        private const val LATITUDE = 0.0
+        private const val LONGITUDE = 0.0
         private const val ACCESS_FINE_LOCATION = 10000000
     }
 
@@ -103,9 +103,23 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     override fun requestLocationUpdates(callback: (Result<Location>) -> Unit) {
         Log.d(TAG, "requestLocationUpdates")
-        locationManager?.let {
-            it.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, gpsLocationListener.apply { platformCallback = callback })
-            it.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0f, networkLocationListener.apply { platformCallback = callback })
+        try {
+            locationManager?.let {
+                it.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    0,
+                    0f,
+                    gpsLocationListener.apply { platformCallback = callback }
+                )
+                it.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER,
+                    0,
+                    0f,
+                    networkLocationListener.apply { platformCallback = callback }
+                )
+            }
+        } catch (e: Exception) {
+            callback.invoke(Result.failure(IllegalStateException().initCause(e)))
         }
     }
 
