@@ -7,9 +7,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.util.Log
 import androidx.core.app.ActivityCompat.requestPermissions
-import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
 import androidx.core.content.ContextCompat
-import com.savinkopav.flutter_geolocation_provider.utils.PluginException
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.PluginRegistry
@@ -106,8 +104,8 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
     override fun requestLocationUpdates(callback: (Result<Location>) -> Unit) {
         Log.d(TAG, "requestLocationUpdates")
         locationManager?.let {
-            it.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0f, gpsLocationListener.apply { platformCallback = callback })
-            it.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0f, networkLocationListener.apply { platformCallback = callback })
+            it.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, gpsLocationListener.apply { platformCallback = callback })
+            it.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0f, networkLocationListener.apply { platformCallback = callback })
         }
     }
 
@@ -147,5 +145,4 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
     }
 }
 
-class LocationAccessDenied: PluginException("LocationAccessDenied")
-class LocationAccessPermanentlyDenied: PluginException("LocationAccessPermanentlyDenied")
+class LocationAccessDenied: Exception("LocationAccessDenied")

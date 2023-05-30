@@ -66,11 +66,8 @@ class _MyAppState extends State<MyApp> {
       location = await _simpleGeolocationProviderPlugin.getLastLocation();
     } catch (e) {
       if (e is PlatformException) {
-        print("logger -- e is PlatformException with error body: ${e.toString()}");
-        if (e.code == "LocationAccessDenied") {
-          print("logger -- LocationAccessDenied before");
+        if (e.message != null && e.message!.contains("LocationAccessDenied")) {
           await _showInfoDialog(context, "Location access required", "Application needs geolocation access to work");
-          print("logger -- LocationAccessDenied after");
         }
       }
       location = Location();
@@ -79,8 +76,8 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     setState(() {
-      _latitude = location.latitude?.toString() ?? 'no value';
-      _longitude = location.longitude?.toString() ?? 'no value';
+      _latitude = location.latitude?.toString() ?? '1';
+      _longitude = location.longitude?.toString() ?? '2';
     });
   }
 
