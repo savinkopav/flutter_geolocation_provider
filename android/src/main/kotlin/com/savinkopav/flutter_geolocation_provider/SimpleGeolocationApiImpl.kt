@@ -129,16 +129,16 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         try {
             locationManager?.let {
                 it.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    0,
-                    0f,
-                    gpsLocationListener.apply { requestGpsLocationUpdatesCallback = callback }
-                )
-                it.requestLocationUpdates(
                     LocationManager.NETWORK_PROVIDER,
                     0,
                     0f,
                     networkLocationListener.apply { requestNetworkLocationUpdatesCallback = callback }
+                )
+                it.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    0,
+                    0f,
+                    gpsLocationListener.apply { requestGpsLocationUpdatesCallback = callback }
                 )
             }
         } catch (e: Exception) {
