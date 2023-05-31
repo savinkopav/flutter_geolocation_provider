@@ -20,23 +20,23 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     private val gpsLocationListener = object : LocationListener {
 
-        var platformCallback: ((Result<Location>) -> Unit)? = null
+        var requestGpsLocationUpdatesCallback: ((Result<Location>) -> Unit)? = null
 
         override fun onLocationChanged(location: android.location.Location) {
             Log.d(TAG, "onLocationChanged - GPS with '${Thread.currentThread().name}' thread")
-            platformCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
-            removeLocationUpdates()
+            requestGpsLocationUpdatesCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
+            removeLocationUpdates() //delete listener after getting result
         }
     }
 
     private val networkLocationListener = object : LocationListener {
 
-        var platformCallback: ((Result<Location>) -> Unit)? = null
+        var requestNetworkLocationUpdatesCallback: ((Result<Location>) -> Unit)? = null
 
         override fun onLocationChanged(location: android.location.Location) {
             Log.d(TAG, "onLocationChanged - NETWORK with '${Thread.currentThread().name}' thread")
-            platformCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
-            removeLocationUpdates()
+            requestNetworkLocationUpdatesCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
+            removeLocationUpdates() //delete listener after getting result
         }
     }
 
@@ -50,7 +50,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         private const val TAG = "SimpleGeolocationImpl"
         private const val LATITUDE = 0.0
         private const val LONGITUDE = 0.0
-        private const val ACCESS_FINE_LOCATION = 10000000
+        private const val ACCESS_FINE_LOCATION_REQUEST_CODE = 10101010
     }
 
     fun onActivityAttach(pluginBinding: FlutterPlugin.FlutterPluginBinding, activityBinding: ActivityPluginBinding) {
@@ -76,7 +76,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         Log.d(TAG, "requestLocationPermission")
         if (ContextCompat.checkSelfPermission(activityPluginBinding!!.activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             permissionCallback = callback
-            requestPermissions(activityPluginBinding!!.activity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), ACCESS_FINE_LOCATION)
+            requestPermissions(activityPluginBinding!!.activity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), ACCESS_FINE_LOCATION_REQUEST_CODE)
         } else {
             callback(Result.success(Unit))
         }
@@ -132,13 +132,13 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
                     LocationManager.GPS_PROVIDER,
                     0,
                     0f,
-                    gpsLocationListener.apply { platformCallback = callback }
+                    gpsLocationListener.apply { requestGpsLocationUpdatesCallback = callback }
                 )
                 it.requestLocationUpdates(
                     LocationManager.NETWORK_PROVIDER,
                     0,
                     0f,
-                    networkLocationListener.apply { platformCallback = callback }
+                    networkLocationListener.apply { requestNetworkLocationUpdatesCallback = callback }
                 )
             }
         } catch (e: Exception) {
@@ -195,7 +195,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
     ): Boolean {
         Log.d(TAG, "onRequestPermissionsResult")
         return when (requestCode) {
-            ACCESS_FINE_LOCATION -> {
+            ACCESS_FINE_LOCATION_REQUEST_CODE -> {
                 val callback = permissionCallback
                 permissionCallback = null
                 if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
