@@ -69,7 +69,7 @@ class _MyAppState extends State<MyApp> {
         } else if (e.message != null && e.message!.contains("LocationProviderDenied")) {
           await _showInfoDialog(context, "GPS provider unavailable", "Please check your gps service");
         } else if (e.message != null && e.message!.contains("NetworkProviderDenied")) {
-          await _showInfoDialog(context, "Network provider unavailable", "Please check your network connection");
+          await _showInfoDialog(context, "Network provider unavailable", "Please check your gps service and network connection");
         }
       }
       location = Location();
@@ -78,8 +78,8 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     setState(() {
-      _latitude = location.latitude?.toString() ?? '1';
-      _longitude = location.longitude?.toString() ?? '2';
+      _latitude = location.latitude?.toString() ?? 'no result';
+      _longitude = location.longitude?.toString() ?? 'no result';
     });
   }
 

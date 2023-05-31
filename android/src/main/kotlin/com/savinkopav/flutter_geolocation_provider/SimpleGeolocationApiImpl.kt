@@ -23,7 +23,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         var platformCallback: ((Result<Location>) -> Unit)? = null
 
         override fun onLocationChanged(location: android.location.Location) {
-            Log.d(TAG, "onLocationChanged - GPS")
+            Log.d(TAG, "onLocationChanged - GPS with '${Thread.currentThread().name}' thread")
             platformCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
         }
     }
@@ -33,7 +33,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         var platformCallback: ((Result<Location>) -> Unit)? = null
 
         override fun onLocationChanged(location: android.location.Location) {
-            Log.d(TAG, "onLocationChanged - NETWORK")
+            Log.d(TAG, "onLocationChanged - NETWORK with '${Thread.currentThread().name}' thread")
             platformCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
         }
     }
@@ -55,14 +55,14 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         Log.d(TAG, "onActivityAttach")
         this.activityPluginBinding = activityBinding
         this.flutterPluginBinding = pluginBinding
-        activityPluginBinding?.addRequestPermissionsResultListener(this)
-        locationManager = activityBinding.activity.getSystemService(Context.LOCATION_SERVICE) as LocationManager?
-        connectivityManager = activityBinding.activity.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager?
+        this.activityPluginBinding?.addRequestPermissionsResultListener(this)
+        this.locationManager = activityBinding.activity.getSystemService(Context.LOCATION_SERVICE) as LocationManager?
+        this.connectivityManager = activityBinding.activity.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager?
     }
 
     fun onActivityDetach() {
         Log.d(TAG, "onActivityDetach")
-        activityPluginBinding?.removeRequestPermissionsResultListener(this)
+        this.activityPluginBinding?.removeRequestPermissionsResultListener(this)
         this.activityPluginBinding = null
         this.flutterPluginBinding = null
         this.locationManager = null
@@ -107,7 +107,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
     }
 
     override fun requestLocationUpdates(callback: (Result<Location>) -> Unit) {
-        Log.d(TAG, "requestLocationUpdates")
+        Log.d(TAG, "requestLocationUpdates, connection section with '${Thread.currentThread().name}' thread")
 
         try {
             if (!isGpsConnected()) {
@@ -123,6 +123,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
             return
         }
 
+        Log.d(TAG, "requestLocationUpdates, updates section with '${Thread.currentThread().name}' thread")
         try {
             locationManager?.let {
                 it.requestLocationUpdates(
