@@ -25,6 +25,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         override fun onLocationChanged(location: android.location.Location) {
             Log.d(TAG, "onLocationChanged - GPS with '${Thread.currentThread().name}' thread")
             platformCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
+            removeLocationUpdates()
         }
     }
 
@@ -35,13 +36,14 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         override fun onLocationChanged(location: android.location.Location) {
             Log.d(TAG, "onLocationChanged - NETWORK with '${Thread.currentThread().name}' thread")
             platformCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
+            removeLocationUpdates()
         }
     }
 
     private var locationManager: LocationManager? = null
     private var connectivityManager: ConnectivityManager? = null
     private var activityPluginBinding: ActivityPluginBinding? = null
-    private var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null //TODO: last upd
+    private var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null
     private var permissionCallback: ((Result<Unit>) -> Unit)? = null
 
     companion object {
@@ -62,6 +64,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     fun onActivityDetach() {
         Log.d(TAG, "onActivityDetach")
+        removeLocationUpdates()
         this.activityPluginBinding?.removeRequestPermissionsResultListener(this)
         this.activityPluginBinding = null
         this.flutterPluginBinding = null
@@ -107,7 +110,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
     }
 
     override fun requestLocationUpdates(callback: (Result<Location>) -> Unit) {
-        Log.d(TAG, "requestLocationUpdates, connection section with '${Thread.currentThread().name}' thread")
+        Log.d(TAG, "requestLocationUpdates with '${Thread.currentThread().name}' thread")
 
         try {
             if (!isGpsConnected()) {
@@ -123,7 +126,6 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
             return
         }
 
-        Log.d(TAG, "requestLocationUpdates, updates section with '${Thread.currentThread().name}' thread")
         try {
             locationManager?.let {
                 it.requestLocationUpdates(
@@ -175,7 +177,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         return locationManager!!.isProviderEnabled(LocationManager.GPS_PROVIDER)
     }
 
-    override fun removeLocationUpdates() {
+    private fun removeLocationUpdates() {
         Log.d(TAG, "removeLocationUpdates")
         locationManager?.removeUpdates(gpsLocationListener)
         locationManager?.removeUpdates(networkLocationListener)
@@ -183,10 +185,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     private fun provideLocationFromCoordinates(lat: Double?, long: Double?) : Location {
         Log.d(TAG, "provideLocationFromCoordinates")
-        return Location().apply {
-            latitude = lat
-            longitude = long
-        }
+        return Location(latitude = lat, longitude = long)
     }
 
     override fun onRequestPermissionsResult(

@@ -1,6 +1,5 @@
 package com.savinkopav.flutter_geolocation_provider
 
-import android.app.Activity
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -10,7 +9,7 @@ class FlutterGeolocationProviderPlugin: FlutterPlugin, ActivityAware {
 
   private var activityPluginBinding: ActivityPluginBinding? = null
   private var simpleGeolocationApi: SimpleGeolocationImpl? = null
-  private var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null //TODO: last upd
+  private var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     this.flutterPluginBinding = flutterPluginBinding

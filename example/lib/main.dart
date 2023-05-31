@@ -4,7 +4,11 @@ import 'dart:async';
 import 'package:flutter_geolocation_provider/pigeon.dart';
 import 'package:flutter_geolocation_provider/geolocation_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   runApp(const Main());
 }
 
@@ -58,18 +62,19 @@ class _MyAppState extends State<MyApp> {
     try {
       await _simpleGeolocationProviderPlugin.requestLocationPermission();
       await _simpleGeolocationProviderPlugin.requestLocationUpdates();
-      await _simpleGeolocationProviderPlugin.removeLocationUpdates();
       location = await _simpleGeolocationProviderPlugin.getLastLocation();
     } catch (e) {
       if (e is PlatformException) {
-        if (e.message != null && e.message!.contains("LocationAccessDenied")) {
-          await _showInfoDialog(context, "Location access required", "Application needs geolocation access for work");
-        } else if (e.message != null && e.message!.contains("LocationAccessPermanentlyDenied")) {
-          await _showInfoDialog(context, "Location access denied", "You can provide access via settings");
-        } else if (e.message != null && e.message!.contains("LocationProviderDenied")) {
-          await _showInfoDialog(context, "GPS provider unavailable", "Please check your gps service");
-        } else if (e.message != null && e.message!.contains("NetworkProviderDenied")) {
-          await _showInfoDialog(context, "Network provider unavailable", "Please check your gps service and network connection");
+        if (e.message != null) {
+          if (e.message!.contains("LocationAccessDenied")) {
+            await _showInfoDialog(context, "Location access required", "Application needs geolocation access for work");
+          } else if (e.message!.contains("LocationAccessPermanentlyDenied")) {
+            await _showInfoDialog(context, "Location access denied", "You can provide access via settings");
+          } else if (e.message!.contains("LocationProviderDenied")) {
+            await _showInfoDialog(context, "GPS provider unavailable", "Please check your gps service");
+          } else if (e.message!.contains("NetworkProviderDenied")) {
+            await _showInfoDialog(context, "Network provider unavailable", "Please check your gps service and network connection");
+          }
         }
       }
       location = Location();

@@ -11,7 +11,6 @@ abstract class SimpleGeolocationApi {
   @async
   Location requestLocationUpdates();
 
-  void removeLocationUpdates();
 }
 
 

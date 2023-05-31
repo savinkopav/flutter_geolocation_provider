@@ -17,10 +17,6 @@ class GeolocationService {
     return _simpleGeolocationApi.getLastLocation();
   }
 
-  Future<void> removeLocationUpdates() {
-    return _simpleGeolocationApi.removeLocationUpdates();
-  }
-
   Future<Location> requestLocationUpdates() {
     return _simpleGeolocationApi.requestLocationUpdates();
   }
