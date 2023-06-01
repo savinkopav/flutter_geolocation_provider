@@ -8,6 +8,8 @@ import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
@@ -18,25 +20,14 @@ import io.flutter.plugin.common.PluginRegistry
 
 class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermissionsResultListener {
 
-    private val gpsLocationListener = object : LocationListener {
+    private val locationListener = object : LocationListener {
 
-        var requestGpsLocationUpdatesCallback: ((Result<Location>) -> Unit)? = null
-
-        override fun onLocationChanged(location: android.location.Location) {
-            Log.d(TAG, "onLocationChanged - GPS with '${Thread.currentThread().name}' thread")
-            requestGpsLocationUpdatesCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
-            removeLocationUpdates() //delete listener after getting result
-        }
-    }
-
-    private val networkLocationListener = object : LocationListener {
-
-        var requestNetworkLocationUpdatesCallback: ((Result<Location>) -> Unit)? = null
+        var locationUpdatesCallback: ((Result<Location>) -> Unit)? = null
 
         override fun onLocationChanged(location: android.location.Location) {
-            Log.d(TAG, "onLocationChanged - NETWORK with '${Thread.currentThread().name}' thread")
-            requestNetworkLocationUpdatesCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
+            Log.d(TAG, "onLocationChanged with the '${Thread.currentThread().name}' thread")
             removeLocationUpdates() //delete listener after getting result
+            locationUpdatesCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
         }
     }
 
@@ -45,6 +36,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
     private var activityPluginBinding: ActivityPluginBinding? = null
     private var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null
     private var permissionCallback: ((Result<Unit>) -> Unit)? = null
+    private val handler = Looper.myLooper()?.let { Handler(it) }
 
     companion object {
         private const val TAG = "SimpleGeolocationImpl"
@@ -132,15 +124,20 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
                     LocationManager.NETWORK_PROVIDER,
                     0,
                     0f,
-                    networkLocationListener.apply { requestNetworkLocationUpdatesCallback = callback }
+                    locationListener.apply { locationUpdatesCallback = callback }
                 )
                 it.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
                     0,
                     0f,
-                    gpsLocationListener.apply { requestGpsLocationUpdatesCallback = callback }
+                    locationListener.apply { locationUpdatesCallback = callback }
                 )
             }
+            handler?.postDelayed({
+                Log.d(TAG, "requestLocationUpdates, handler section")
+                removeLocationUpdates()
+                callback.invoke(Result.failure(IllegalStateException()))
+            }, 8000L)
         } catch (e: Exception) {
             callback.invoke(Result.failure(IllegalStateException().initCause(e)))
         }
@@ -179,8 +176,8 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     private fun removeLocationUpdates() {
         Log.d(TAG, "removeLocationUpdates")
-        locationManager?.removeUpdates(gpsLocationListener)
-        locationManager?.removeUpdates(networkLocationListener)
+        locationManager?.removeUpdates(locationListener)
+        handler?.removeCallbacksAndMessages(null)
     }
 
     private fun provideLocationFromCoordinates(lat: Double?, long: Double?) : Location {
