@@ -136,7 +136,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
             handler?.postDelayed({
                 Log.d(TAG, "requestLocationUpdates, handler section")
                 removeLocationUpdates()
-                callback.invoke(Result.failure(IllegalStateException()))
+                callback.invoke(Result.failure(ProviderNotResponding()))
             }, 8000L)
         } catch (e: Exception) {
             callback.invoke(Result.failure(IllegalStateException().initCause(e)))
@@ -215,3 +215,4 @@ class LocationAccessDenied: Exception("LocationAccessDenied")
 class LocationAccessPermanentlyDenied: Exception("LocationAccessPermanentlyDenied")
 class LocationProviderDenied: Exception("LocationProviderDenied")
 class NetworkProviderDenied: Exception("NetworkProviderDenied")
+class ProviderNotResponding: Exception("ProviderNotResponding")

@@ -73,7 +73,9 @@ class _MyAppState extends State<MyApp> {
           } else if (e.message!.contains("LocationProviderDenied")) {
             await _showInfoDialog(context, "GPS provider unavailable", "Please check your gps service");
           } else if (e.message!.contains("NetworkProviderDenied")) {
-            await _showInfoDialog(context, "Network provider unavailable", "Please check your gps service and network connection");
+            await _showInfoDialog(context, "Network provider unavailable", "Please check your network connection");
+          } else if (e.message!.contains("ProviderNotResponding")) {
+            await _showInfoDialog(context, "Provider does not answer", "Make sure you have gps services enabled and an internet connection and try again");
           }
         }
       }
