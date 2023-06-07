@@ -45,6 +45,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String _latitude = 'Unknown';
   String _longitude = 'Unknown';
+  bool isLoading = false;
   final _simpleGeolocationProviderPlugin = GeolocationService();
 
   @override
@@ -56,6 +57,7 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _latitude = 'Unknown';
       _longitude = 'Unknown';
+      isLoading = true;
     });
 
     Location location;
@@ -87,6 +89,7 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _latitude = location.latitude?.toString() ?? 'no result';
       _longitude = location.longitude?.toString() ?? 'no result';
+      isLoading = false;
     });
   }
 
@@ -121,11 +124,11 @@ class _MyAppState extends State<MyApp> {
             Text('longitude: $_longitude'),
             Padding(
               padding: const EdgeInsets.all(5.0),
-              child: MaterialButton(
+              child: !isLoading ? MaterialButton(
                 color: Colors.grey.shade800,
                 onPressed: () => getLocation(context),
                 child: const Text('Get location'),
-              ),
+              ) : const CircularProgressIndicator(),
             )
           ],
         ),

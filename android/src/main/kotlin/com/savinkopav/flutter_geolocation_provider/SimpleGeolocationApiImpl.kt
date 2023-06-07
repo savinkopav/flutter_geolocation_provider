@@ -17,8 +17,18 @@ import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.PluginRegistry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermissionsResultListener {
+
+    //coroutines support
+    private val mainScope = CoroutineScope(Dispatchers.Main.immediate + Job())
+    private val ioDispatcher = Dispatchers.IO
 
     private val locationListener = object : LocationListener {
 
@@ -36,7 +46,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
     private var activityPluginBinding: ActivityPluginBinding? = null
     private var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null
     private var permissionCallback: ((Result<Unit>) -> Unit)? = null
-    private val handler = Looper.myLooper()?.let { Handler(it) }
+    private val handler = Handler(Looper.getMainLooper())
 
     companion object {
         private const val TAG = "SimpleGeolocationImpl"
@@ -62,6 +72,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         this.flutterPluginBinding = null
         this.locationManager = null
         this.connectivityManager = null
+        mainScope.coroutineContext.cancelChildren()
     }
 
     override fun requestLocationPermission(callback: (Result<Unit>) -> Unit) {
@@ -74,110 +85,119 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         }
     }
 
-    override fun getLastLocation(): Location {
+    override fun getLastLocation(callback: (Result<Location>) -> Unit) {
         Log.d(TAG, "getLastLocation")
+        mainScope.launch {
+            callback.invoke(Result.success(getLastLocation()))
+        }
+    }
+
+    private suspend fun getLastLocation(): Location = withContext(ioDispatcher) {
         locationManager?.let {
             Log.d(TAG, "locationManager = $it")
             it.getLastKnownLocation(
                 LocationManager.GPS_PROVIDER
             )?.let { gpsLocationResult ->
                 Log.d(TAG, "gpsLocationResult = ${gpsLocationResult.latitude}, ${gpsLocationResult.longitude}")
-                return provideLocationFromCoordinates(gpsLocationResult.latitude, gpsLocationResult.longitude)
+                provideLocationFromCoordinates(gpsLocationResult.latitude, gpsLocationResult.longitude)
             } ?: run {
                 Log.d(TAG, "gpsLocationResult = null")
                 it.getLastKnownLocation(
                     LocationManager.NETWORK_PROVIDER
                 )?.let { networkLocationResult ->
                     Log.d(TAG, "networkLocationResult = ${networkLocationResult.latitude}, ${networkLocationResult.longitude}")
-                    return provideLocationFromCoordinates(networkLocationResult.latitude, networkLocationResult.longitude)
+                    provideLocationFromCoordinates(networkLocationResult.latitude, networkLocationResult.longitude)
                 } ?: run {
                     Log.d(TAG, "networkLocationResult = null")
-                    return provideLocationFromCoordinates(LATITUDE, LONGITUDE)
+                    provideLocationFromCoordinates(LATITUDE, LONGITUDE)
                 }
             }
         } ?: run {
             Log.d(TAG, "locationManager = null")
-            return provideLocationFromCoordinates(LATITUDE, LONGITUDE)
+            provideLocationFromCoordinates(LATITUDE, LONGITUDE)
         }
     }
 
     override fun requestLocationUpdates(callback: (Result<Location>) -> Unit) {
         Log.d(TAG, "requestLocationUpdates with '${Thread.currentThread().name}' thread")
 
-        try {
-            if (!isGpsConnected()) {
-                callback.invoke(Result.failure(LocationProviderDenied()))
-                return
+        mainScope.launch {
+            try {
+                if (!isGpsConnected()) {
+                    callback.invoke(Result.failure(LocationProviderDenied()))
+                    return@launch
+                }
+                if (!isNetworkConnected()) {
+                    callback.invoke(Result.failure(NetworkProviderDenied()))
+                    return@launch
+                }
+            } catch (e: Exception) {
+                callback.invoke(Result.failure(IllegalStateException().initCause(e)))
+                return@launch
             }
-            if (!isNetworkConnected()) {
-                callback.invoke(Result.failure(NetworkProviderDenied()))
-                return
-            }
-        } catch (e: Exception) {
-            callback.invoke(Result.failure(IllegalStateException().initCause(e)))
-            return
-        }
 
-        try {
-            locationManager?.let {
-                it.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER,
-                    0,
-                    0f,
-                    locationListener.apply { locationUpdatesCallback = callback }
-                )
-                it.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    0,
-                    0f,
-                    locationListener.apply { locationUpdatesCallback = callback }
-                )
+            try {
+                locationManager?.let {
+                    it.requestLocationUpdates(
+                        LocationManager.NETWORK_PROVIDER,
+                        0,
+                        0f,
+                        locationListener.apply { locationUpdatesCallback = callback }
+                    )
+                    it.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER,
+                        0,
+                        0f,
+                        locationListener.apply { locationUpdatesCallback = callback }
+                    )
+                }
+
+                handler.postDelayed({
+                    removeLocationUpdates()
+                    callback.invoke(Result.failure(ProviderNotResponding()))
+                }, 8000L)
+            } catch (e: Exception) {
+                callback.invoke(Result.failure(IllegalStateException().initCause(e)))
+                return@launch
             }
-            handler?.postDelayed({
-                Log.d(TAG, "requestLocationUpdates, handler section")
-                removeLocationUpdates()
-                callback.invoke(Result.failure(ProviderNotResponding()))
-            }, 8000L)
-        } catch (e: Exception) {
-            callback.invoke(Result.failure(IllegalStateException().initCause(e)))
         }
     }
 
-    private fun isNetworkConnected(): Boolean {
+    private suspend fun isNetworkConnected(): Boolean = withContext(ioDispatcher) {
         Log.d(TAG, "isNetworkConnected")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val capabilities = connectivityManager!!.getNetworkCapabilities(connectivityManager!!.activeNetwork)
             if (capabilities != null) {
                 when {
                     capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
-                        return true
+                        return@withContext true
                     }
                     capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
-                        return true
+                        return@withContext true
                     }
                     capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> {
-                        return true
+                        return@withContext true
                     }
                 }
             }
         } else {
             val activeNetworkInfo = connectivityManager!!.activeNetworkInfo
             if (activeNetworkInfo != null && activeNetworkInfo.isConnected) {
-                return true
+                return@withContext true
             }
         }
-        return false
+        false
     }
 
-    private fun isGpsConnected(): Boolean {
+    private suspend fun isGpsConnected(): Boolean = withContext(ioDispatcher) {
         Log.d(TAG, "isGpsConnected")
-        return locationManager!!.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        locationManager!!.isProviderEnabled(LocationManager.GPS_PROVIDER)
     }
 
     private fun removeLocationUpdates() {
         Log.d(TAG, "removeLocationUpdates")
         locationManager?.removeUpdates(locationListener)
-        handler?.removeCallbacksAndMessages(null)
+        handler.removeCallbacksAndMessages(null)
     }
 
     private fun provideLocationFromCoordinates(lat: Double?, long: Double?) : Location {

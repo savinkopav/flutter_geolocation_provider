@@ -6,6 +6,7 @@ abstract class SimpleGeolocationApi {
   @async
   void requestLocationPermission();
 
+  @async
   Location getLastLocation();
 
   @async

@@ -88,7 +88,7 @@ private object SimpleGeolocationApiCodec : StandardMessageCodec() {
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface SimpleGeolocationApi {
   fun requestLocationPermission(callback: (Result<Unit>) -> Unit)
-  fun getLastLocation(): Location
+  fun getLastLocation(callback: (Result<Location>) -> Unit)
   fun requestLocationUpdates(callback: (Result<Location>) -> Unit)
 
   companion object {
@@ -120,12 +120,15 @@ interface SimpleGeolocationApi {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.SimpleGeolocationApi.getLastLocation", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
-            val wrapped: List<Any?> = try {
-              listOf<Any?>(api.getLastLocation())
-            } catch (exception: Throwable) {
-              wrapError(exception)
+            api.getLastLocation() { result: Result<Location> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(wrapResult(data))
+              }
             }
-            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)
