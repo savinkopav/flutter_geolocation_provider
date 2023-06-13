@@ -37,7 +37,14 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         override fun onLocationChanged(location: android.location.Location) {
             Log.d(TAG, "onLocationChanged with the '${Thread.currentThread().name}' thread")
             removeLocationUpdates() //delete listener after getting result
-            locationUpdatesCallback?.invoke(Result.success(Location(location.latitude, location.longitude)))
+            locationUpdatesCallback?.invoke(
+                Result.success(
+                    Location(
+                        location.latitude,
+                        location.longitude
+                    )
+                )
+            )
         }
     }
 
@@ -55,13 +62,18 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         private const val ACCESS_FINE_LOCATION_REQUEST_CODE = 10101010
     }
 
-    fun onActivityAttach(pluginBinding: FlutterPlugin.FlutterPluginBinding, activityBinding: ActivityPluginBinding) {
+    fun onActivityAttach(
+        pluginBinding: FlutterPlugin.FlutterPluginBinding,
+        activityBinding: ActivityPluginBinding
+    ) {
         Log.d(TAG, "onActivityAttach")
         this.activityPluginBinding = activityBinding
         this.flutterPluginBinding = pluginBinding
         this.activityPluginBinding?.addRequestPermissionsResultListener(this)
-        this.locationManager = activityBinding.activity.getSystemService(Context.LOCATION_SERVICE) as LocationManager?
-        this.connectivityManager = activityBinding.activity.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager?
+        this.locationManager =
+            activityBinding.activity.getSystemService(Context.LOCATION_SERVICE) as LocationManager?
+        this.connectivityManager =
+            activityBinding.activity.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager?
     }
 
     fun onActivityDetach() {
@@ -77,9 +89,17 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     override fun requestLocationPermission(callback: (Result<Unit>) -> Unit) {
         Log.d(TAG, "requestLocationPermission")
-        if (ContextCompat.checkSelfPermission(activityPluginBinding!!.activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                activityPluginBinding!!.activity,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             permissionCallback = callback
-            requestPermissions(activityPluginBinding!!.activity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), ACCESS_FINE_LOCATION_REQUEST_CODE)
+            requestPermissions(
+                activityPluginBinding!!.activity,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                ACCESS_FINE_LOCATION_REQUEST_CODE
+            )
         } else {
             callback(Result.success(Unit))
         }
@@ -165,16 +185,20 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     private suspend fun isNetworkConnected(): Boolean = withContext(ioDispatcher) {
         Log.d(TAG, "isNetworkConnected")
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val capabilities = connectivityManager!!.getNetworkCapabilities(connectivityManager!!.activeNetwork)
+
             if (capabilities != null) {
                 when {
                     capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
                         return@withContext true
                     }
+
                     capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
                         return@withContext true
                     }
+
                     capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> {
                         return@withContext true
                     }
@@ -200,7 +224,7 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
         handler.removeCallbacksAndMessages(null)
     }
 
-    private fun provideLocationFromCoordinates(lat: Double?, long: Double?) : Location {
+    private fun provideLocationFromCoordinates(lat: Double?, long: Double?): Location {
         Log.d(TAG, "provideLocationFromCoordinates")
         return Location(latitude = lat, longitude = long)
     }
@@ -218,7 +242,11 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
                 if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                     callback!!.invoke(Result.success(Unit))
                 } else {
-                    if (shouldShowRequestPermissionRationale(activityPluginBinding!!.activity, Manifest.permission.ACCESS_FINE_LOCATION)) { //TODO returns false when clicked outside the dialog
+                    if (shouldShowRequestPermissionRationale(
+                            activityPluginBinding!!.activity,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        )
+                    ) { //TODO returns false when clicked outside the dialog
                         callback!!.invoke(Result.failure(LocationAccessDenied()))
                     } else {
                         callback!!.invoke(Result.failure(LocationAccessPermanentlyDenied()))
@@ -226,13 +254,8 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
                 }
                 true
             }
+
             else -> false
         }
     }
 }
-
-class LocationAccessDenied: Exception("LocationAccessDenied")
-class LocationAccessPermanentlyDenied: Exception("LocationAccessPermanentlyDenied")
-class LocationProviderDenied: Exception("LocationProviderDenied")
-class NetworkProviderDenied: Exception("NetworkProviderDenied")
-class ProviderNotResponding: Exception("ProviderNotResponding")
