@@ -8,6 +8,7 @@ import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -36,8 +37,9 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
         override fun onLocationChanged(location: android.location.Location) {
             Log.d(TAG, "onLocationChanged with the '${Thread.currentThread().name}' thread")
+            val callback = locationUpdatesCallback
             removeLocationUpdates() //delete listener after getting result
-            locationUpdatesCallback?.invoke(
+            callback?.invoke(
                 Result.success(
                     Location(
                         location.latitude,
@@ -46,6 +48,12 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
                 )
             )
         }
+
+        override fun onProviderEnabled(provider: String) {}
+
+        override fun onProviderDisabled(provider: String) {}
+
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
     }
 
     private var locationManager: LocationManager? = null
@@ -157,25 +165,27 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
             }
 
             try {
+                locationListener.locationUpdatesCallback = callback
+
                 locationManager?.let {
                     it.requestLocationUpdates(
                         LocationManager.NETWORK_PROVIDER,
                         0,
                         0f,
-                        locationListener.apply { locationUpdatesCallback = callback }
+                        locationListener,
                     )
                     it.requestLocationUpdates(
                         LocationManager.GPS_PROVIDER,
                         0,
                         0f,
-                        locationListener.apply { locationUpdatesCallback = callback }
+                        locationListener,
                     )
                 }
 
                 handler.postDelayed({
                     removeLocationUpdates()
                     callback.invoke(Result.failure(ProviderNotResponding()))
-                }, 8000L)
+                }, 10000L)
             } catch (e: Exception) {
                 callback.invoke(Result.failure(IllegalStateException().initCause(e)))
                 return@launch
@@ -220,7 +230,9 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
     private fun removeLocationUpdates() {
         Log.d(TAG, "removeLocationUpdates")
-        locationManager?.removeUpdates(locationListener)
+        locationManager?.removeUpdates(locationListener.apply {
+            locationUpdatesCallback = null
+        })
         handler.removeCallbacksAndMessages(null)
     }
 
@@ -257,5 +269,11 @@ class SimpleGeolocationImpl: SimpleGeolocationApi, PluginRegistry.RequestPermiss
 
             else -> false
         }
+    }
+
+    override fun dispose() {
+        Log.d(TAG, "dispose")
+
+        removeLocationUpdates()
     }
 }

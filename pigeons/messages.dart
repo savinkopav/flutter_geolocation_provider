@@ -12,6 +12,8 @@ abstract class SimpleGeolocationApi {
   @async
   Location requestLocationUpdates();
 
+  void dispose();
+
 }
 
 

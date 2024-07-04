@@ -25,4 +25,8 @@ class GeolocationService {
     return _simpleGeolocationApi.requestLocationPermission();
   }
 
+  Future<void> dispose() {
+    return _simpleGeolocationApi.dispose();
+  }
+
 }

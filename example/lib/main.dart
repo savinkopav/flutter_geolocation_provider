@@ -49,8 +49,9 @@ class _MyAppState extends State<MyApp> {
   final _simpleGeolocationProviderPlugin = GeolocationService();
 
   @override
-  void initState() {
-    super.initState();
+  dispose() {
+    _simpleGeolocationProviderPlugin.dispose();
+    super.dispose();
   }
 
   Future<void> getLocation(BuildContext context) async {
@@ -68,6 +69,8 @@ class _MyAppState extends State<MyApp> {
     } catch (e) {
       if (e is PlatformException) {
         if (e.message != null) {
+          if (!context.mounted) return;
+
           if (e.message!.contains("LocationAccessDenied")) {
             await _showInfoDialog(context, "Location access required", "Application needs geolocation access for work");
           } else if (e.message!.contains("LocationAccessPermanentlyDenied")) {
@@ -84,7 +87,7 @@ class _MyAppState extends State<MyApp> {
       location = Location();
     }
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     setState(() {
       _latitude = location.latitude?.toString() ?? 'no result';

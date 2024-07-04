@@ -90,6 +90,7 @@ interface SimpleGeolocationApi {
   fun requestLocationPermission(callback: (Result<Unit>) -> Unit)
   fun getLastLocation(callback: (Result<Location>) -> Unit)
   fun requestLocationUpdates(callback: (Result<Location>) -> Unit)
+  fun dispose()
 
   companion object {
     /** The codec used by SimpleGeolocationApi. */
@@ -147,6 +148,22 @@ interface SimpleGeolocationApi {
                 reply.reply(wrapResult(data))
               }
             }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.SimpleGeolocationApi.dispose", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              api.dispose()
+              listOf<Any?>(null)
+            } catch (exception: Throwable) {
+              wrapError(exception)
+            }
+            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)
